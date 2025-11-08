@@ -11,16 +11,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Gtf {
-    private List<Gene> genes;
+    private final HashMap<String, Gene> genes;
 
     public Gtf(Path filePath, List<String> relevantTranscriptIds) {
-        HashMap<String, Gene> geneMap = new HashMap<>();
+        genes = new HashMap<>();
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(filePath.toFile()));
             String line;
 
             while ((line = br.readLine()) != null) {
+                if (line.startsWith("#")) continue;
+
                 String[] fields = line.split("\t");
                 if (!fields[2].equals("exon")) continue;
 
@@ -29,33 +31,38 @@ public class Gtf {
 
                 String geneId = Gtf.getAttribute("gene_id", fields[8]);
 
-                if (!geneMap.containsKey(geneId)) {
+                if (!genes.containsKey(geneId)) {
                     Gene gene = new Gene(geneId, fields[0]);
-                    Transcript transcript = new Transcript(transcriptId);
-                    transcript.addCoordinates(new Coordinates(Integer.parseInt(fields[3]), Integer.parseInt(fields[4])));
-                    gene.addTranscript(transcript);
-                    geneMap.put(geneId, gene);
+                    gene.makeTranscript(transcriptId);
+                    gene.getTranscript(transcriptId).addCoordinates(new Coordinates(Integer.parseInt(fields[3]), Integer.parseInt(fields[4])));
+                    genes.put(geneId, gene);
                 } else {
-                    Gene currentGene = geneMap.get(geneId);
+                    Gene currentGene = genes.get(geneId);
                     if (!currentGene.hasTranscript(transcriptId)) {
-                        Transcript transcript = new Transcript(transcriptId);
-                        transcript.addCoordinates(new Coordinates(Integer.parseInt(fields[3]), Integer.parseInt(fields[4])));
+                        currentGene.makeTranscript(transcriptId);
+                        currentGene.getTranscript(transcriptId).addCoordinates(new Coordinates(Integer.parseInt(fields[3]), Integer.parseInt(fields[4])));
                     } else {
-                        Transcript transcript = currentGene.getTranscript(transcriptId);
-                        transcript.addCoordinates(new Coordinates(Integer.parseInt(fields[3]), Integer.parseInt(fields[4])));
+                        currentGene.getTranscript(transcriptId).addCoordinates(new Coordinates(Integer.parseInt(fields[3]), Integer.parseInt(fields[4])));
                     }
                 }
             }
-
-            genes = new ArrayList<>(geneMap.values());
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
+    public Gene getGene(String geneId) {
+        return genes.get(geneId);
+    }
+
     public List<Gene> getGenes() {
-        return genes;
+        return new ArrayList<>(genes.values());
+    }
+
+    public void buildGenesTranscriptSequences(IndexedFastaReader reader) {
+        for (Gene gene : genes.values()) {
+            gene.buildTranscriptSequences(reader);
+        }
     }
 
     public static String getAttribute(String attribute, String column) {

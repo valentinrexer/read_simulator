@@ -1,17 +1,23 @@
 package readSimulator;
 
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class Gene {
-    private String geneId;
-    private String chromosome;
-    private HashMap<String, Transcript> transcriptMap;
+    private final String geneId;
+    private final String chromosome;
+    private final HashMap<String, Transcript> transcriptMap;
 
-    public Gene(String geneId, String chromosome) {}
+    public Gene(String geneId, String chromosome) {
+        this.geneId = geneId;
+        this.chromosome = chromosome;
+        this.transcriptMap = new HashMap<>();
+    }
 
-    public void addTranscript(Transcript transcript) {
-        transcriptMap.put(transcript.getTranscriptId(), transcript);
+    public void makeTranscript(String transcriptId) {
+        transcriptMap.put(transcriptId, new Transcript(transcriptId, chromosome));
     }
 
     public Transcript getTranscript(String transcriptId) {
@@ -20,5 +26,23 @@ public class Gene {
 
     public boolean hasTranscript(String transcriptId) {
         return transcriptMap.containsKey(transcriptId);
+    }
+
+    public void buildTranscriptSequences(IndexedFastaReader reader) {
+        for (Transcript transcript : transcriptMap.values()) {
+            transcript.buildSequence(reader);
+        }
+    }
+
+    public String getGeneId() {
+        return geneId;
+    }
+
+    public String getChromosome() {
+        return chromosome;
+    }
+
+    public List<Transcript> getTranscripts() {
+        return new ArrayList<>(transcriptMap.values());
     }
 }

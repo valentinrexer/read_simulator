@@ -15,19 +15,15 @@ public class ReadCounts {
     public ReadCounts(Path filePath) {
         countsInfo = new ArrayList<>();
 
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(filePath.toFile()));
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath.toFile()))) {
             String line;
+            while ((line = br.readLine()) != null) {
+                // Skip header line if present
+                if (line.equals("gene\ttranscript\tcount")) continue;
 
-            line = br.readLine();
-            if (line.equals("gene\ttranscript\tcount")) line = br.readLine();
-
-            while ((line = br.readLine())!= null) {
                 List<String> row = new ArrayList<>(Arrays.asList(line.split("\t")));
                 countsInfo.add(row);
             }
-        } catch (FileNotFoundException e) {
-            _LOGGER.log(Level.SEVERE, "File not found: {0}", e.getMessage());
         } catch (IOException e) {
             _LOGGER.log(Level.SEVERE, "Error reading file: {0}", e.getMessage());
         }
@@ -42,7 +38,6 @@ public class ReadCounts {
 
         for  (List<String> row : countsInfo)
             transcriptIds.add(row.get(1));
-
         return transcriptIds;
     }
 

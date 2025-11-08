@@ -13,4 +13,4 @@
 - return data and write it collectively to output files
 
 ## Plotting
-plots 
+plots
