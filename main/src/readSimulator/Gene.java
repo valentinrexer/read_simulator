@@ -16,8 +16,8 @@ public class Gene {
         this.transcriptMap = new HashMap<>();
     }
 
-    public void makeTranscript(String transcriptId) {
-        transcriptMap.put(transcriptId, new Transcript(transcriptId, chromosome));
+    public void makeTranscript(String transcriptId, char strand) {
+        transcriptMap.put(transcriptId, new Transcript(transcriptId, chromosome, strand));
     }
 
     public Transcript getTranscript(String transcriptId) {

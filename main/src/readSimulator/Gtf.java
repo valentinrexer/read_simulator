@@ -31,15 +31,17 @@ public class Gtf {
 
                 String geneId = Gtf.getAttribute("gene_id", fields[8]);
 
+                char strand = fields[6].charAt(0);
+
                 if (!genes.containsKey(geneId)) {
                     Gene gene = new Gene(geneId, fields[0]);
-                    gene.makeTranscript(transcriptId);
+                    gene.makeTranscript(transcriptId, strand);
                     gene.getTranscript(transcriptId).addCoordinates(new Coordinates(Integer.parseInt(fields[3]), Integer.parseInt(fields[4])));
                     genes.put(geneId, gene);
                 } else {
                     Gene currentGene = genes.get(geneId);
                     if (!currentGene.hasTranscript(transcriptId)) {
-                        currentGene.makeTranscript(transcriptId);
+                        currentGene.makeTranscript(transcriptId, strand);
                         currentGene.getTranscript(transcriptId).addCoordinates(new Coordinates(Integer.parseInt(fields[3]), Integer.parseInt(fields[4])));
                     } else {
                         currentGene.getTranscript(transcriptId).addCoordinates(new Coordinates(Integer.parseInt(fields[3]), Integer.parseInt(fields[4])));
