@@ -1,7 +1,6 @@
 package readSimulator;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -98,15 +97,54 @@ public class Transcript {
         return sequence.length;
     }
 
-    public List<ReadGenerationEvent> createEventsForTranscript(int[] fragmentLength, int[] startingPosition, int readLength) {
+    public List<ReadGenerationEvent> createEventsForTranscript(int[] fragmentLength,
+                                                               int[] startingPosition,
+                                                               int readLength,
+                                                               double mutationRate,
+                                                               RandomOperationExecutor roe,
+                                                               String chromosome,
+                                                               String geneId) {
         List<ReadGenerationEvent> events = new ArrayList<>();
 
         for (int i = 0; i < fragmentLength.length; i++) {
-            byte[] fwReadSequence = Arrays.copyOfRange(sequence, startingPosition[i], startingPosition[i] + readLength);
-            byte[] rwReadSequence = Arrays.copyOfRange(sequence, startingPosition[i] + fragmentLength[i] - readLength - 1, startingPosition[i] + fragmentLength[i] - 1);
+            int forwardStart = startingPosition[i];
+            int forwardEnd = startingPosition[i] + readLength;
 
+            int reverseStart = startingPosition[i] + fragmentLength[i] - readLength - 1;
+            int reverseEnd = startingPosition[i] + fragmentLength[i] - 1;
 
-            events.add(new ReadGenerationEvent(fwReadSequence, rwReadSequence));
+            byte[] fwReadSequence = Arrays.copyOfRange(sequence,
+                    forwardStart,
+                    forwardEnd);
+
+            byte[] rwReadSequence = Arrays.copyOfRange(sequence,
+                    reverseStart,
+                    reverseEnd);
+
+            int genomicTranscriptStart = exonRegions.getFirst().coordinate1();
+
+            String genomicForwardReadVector = (genomicTranscriptStart + forwardStart) + "-" + (genomicTranscriptStart + forwardEnd);
+            String genomicReverseReadVector = (genomicTranscriptStart + reverseStart) + "-" + (genomicTranscriptStart + reverseEnd);
+
+            String transcriptForwardReadVector = forwardStart + "-" + forwardEnd;
+            String transcriptReverseReadVector = reverseStart + "-" + reverseEnd;
+
+            List<Integer> mutatedPositionsForwardRead = roe.mutateInPlace(fwReadSequence, mutationRate);
+            List<Integer> mutatedPositionsReverseRead = roe.mutateInPlace(rwReadSequence, mutationRate);
+
+            events.add(new ReadGenerationEvent(
+                    chromosome,
+                    geneId,
+                    transcriptId,
+                    fwReadSequence,
+                    rwReadSequence,
+                    genomicForwardReadVector,
+                    genomicReverseReadVector,
+                    transcriptForwardReadVector,
+                    transcriptReverseReadVector,
+                    mutatedPositionsForwardRead,
+                    mutatedPositionsReverseRead)
+            );
         }
         return events;
     }

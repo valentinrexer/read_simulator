@@ -1,6 +1,5 @@
 package readSimulator;
 
-import org.apache.commons.math3.distribution.NormalDistribution;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -8,7 +7,6 @@ import java.util.List;
 public class Gene {
     private final String geneId;
     private final String chromosome;
-    private int length;
     private final HashMap<String, Transcript> transcriptMap;
 
     public Gene(String geneId, String chromosome) {
@@ -29,31 +27,56 @@ public class Gene {
         return transcriptMap.containsKey(transcriptId);
     }
 
+    public String getGeneId() {
+        return geneId;
+    }
+
     public void buildTranscriptSequences(IndexedFastaReader reader) {
         for (Transcript transcript : transcriptMap.values()) {
             transcript.buildSequence(reader);
         }
     }
 
-    public String getGeneId() {
-        return geneId;
+    public List<ReadGenerationEventChunk> getAllChunks(HashMap<String, Integer> counts,
+                                                       int initialFragmentLength,
+                                                       double standardDeviation,
+                                                       int readLength,
+                                                       double mutationRate) {
+        List<ReadGenerationEventChunk> chunks = new ArrayList<>();
+
+        for  (String transcriptId : transcriptMap.keySet()) {
+            ReadGenerationEventChunk currentChunk = generateRandomReadChunkForTranscript(
+                    transcriptId,
+                    counts.get(transcriptId),
+                    initialFragmentLength,
+                    standardDeviation,
+                    readLength,
+                    mutationRate);
+            chunks.add(currentChunk);
+        }
+        return chunks;
     }
 
-    public String getChromosome() {
-        return chromosome;
-    }
-
-    public List<Transcript> getTranscripts() {
-        return new ArrayList<>(transcriptMap.values());
-    }
-
-    public void getRandomReadsForTranscript(String transcriptId, int initialFragmentLength, double standardDeviation, int count) {
+    public ReadGenerationEventChunk generateRandomReadChunkForTranscript(String transcriptId,
+                                            int count,
+                                            int initialFragmentLength,
+                                            double standardDeviation,
+                                            int readLength,
+                                            double mutationRate) {
         Transcript transcript = getTranscript(transcriptId);
         int[] randomLengths = new int[count];
         int[] randomStartingPositions = new int[count];
 
-        FragmentRandomSampler sampler = new FragmentRandomSampler();
-        sampler.initRandomSamples(count, initialFragmentLength, standardDeviation, transcript.length(), randomLengths, randomStartingPositions);
-
+        RandomOperationExecutor roe = new RandomOperationExecutor();
+        roe.initRandomSamples(count, initialFragmentLength, standardDeviation, transcript.length(), randomLengths, randomStartingPositions);
+        return new ReadGenerationEventChunk(transcript.createEventsForTranscript(
+                randomLengths,
+                randomStartingPositions,
+                readLength,
+                mutationRate,
+                roe,
+                chromosome,
+                geneId)
+        );
     }
 }

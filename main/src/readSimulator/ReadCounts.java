@@ -1,70 +1,54 @@
 package readSimulator;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ArrayList;
 import java.nio.file.Path;
-import java.util.logging.Logger;
+import java.util.*;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ReadCounts {
-    private final List<List<String>> countsInfo;
-    private final Logger _LOGGER = Logger.getLogger(ReadCounts.class.getName());
+    private final HashMap<String, HashMap<String, Integer>> countsInfo;
+    private static final Logger _LOGGER = Logger.getLogger(ReadCounts.class.getName());
 
     public ReadCounts(Path filePath) {
-        countsInfo = new ArrayList<>();
+        countsInfo = new HashMap<>();
 
         try (BufferedReader br = new BufferedReader(new FileReader(filePath.toFile()))) {
             String line;
             while ((line = br.readLine()) != null) {
-                // Skip header line if present
-                if (line.equals("gene\ttranscript\tcount")) continue;
+                // Skip header
+                if (line.equals("gene\ttranscript\tcount") || line.startsWith("gene")) continue;
 
-                List<String> row = new ArrayList<>(Arrays.asList(line.split("\t")));
-                countsInfo.add(row);
+                String[] parts = line.split("\t");
+                if (parts.length < 3) continue;
+
+                String geneId = parts[0];
+                String transcriptId = parts[1];
+                int count = Integer.parseInt(parts[2]);
+
+                countsInfo
+                        .computeIfAbsent(geneId, k -> new HashMap<>())
+                        .put(transcriptId, count);
             }
         } catch (IOException e) {
             _LOGGER.log(Level.SEVERE, "Error reading file: {0}", e.getMessage());
+        } catch (NumberFormatException e) {
+            _LOGGER.log(Level.WARNING, "Invalid number format in file: {0}", e.getMessage());
         }
     }
 
-    public List<List<String>> getCounts() {
+    public HashMap<String, HashMap<String, Integer>> getCounts() {
         return countsInfo;
     }
 
     public List<String> getTranscriptIds() {
         List<String> transcriptIds = new ArrayList<>();
-
-        for  (List<String> row : countsInfo)
-            transcriptIds.add(row.get(1));
+        for (HashMap<String, Integer> transcripts : countsInfo.values())
+            transcriptIds.addAll(transcripts.keySet());
         return transcriptIds;
     }
 
-    public List<String> getGeneIds(String transcriptId) {
-        List<String> geneIds = new ArrayList<>();
-
-        for (List<String> row : countsInfo)
-            geneIds.add(row.getFirst());
-
-        return geneIds;
-    }
-
-    public void pop(int index) {
-        this.countsInfo.remove(index);
-    }
-
-    public void pop(String geneId, String transcriptId, String count) {
-        List<Integer> toPop = new ArrayList<>();
-
-        for (int i = 0; i < countsInfo.size(); i++) {
-            if (!countsInfo.get(i).contains(geneId)) continue;
-            if (!countsInfo.get(i).contains(transcriptId)) continue;
-            if (!countsInfo.get(i).contains(count)) continue;
-            toPop.add(i);
-        }
-
-        for (int i = toPop.size() - 1; i >= 0; i--)
-            countsInfo.remove(toPop.get(i).intValue());
+    public List<String> getGeneIds() {
+        return new ArrayList<>(countsInfo.keySet());
     }
 }
