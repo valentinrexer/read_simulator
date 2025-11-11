@@ -1,7 +1,9 @@
 package readSimulator;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -55,7 +57,7 @@ public class Transcript {
         }
 
         if (strand == '-') {
-            reverseComplementInPlace();
+            reverseComplementInPlace(sequence);
         }
     }
 
@@ -63,7 +65,7 @@ public class Transcript {
         return sequence;
     }
 
-    private void reverseComplementInPlace() {
+    public static void reverseComplementInPlace(byte[] sequence) {
         if (sequence == null) return;
 
         int left = 0;
@@ -81,7 +83,7 @@ public class Transcript {
         }
     }
 
-    private byte complement(byte base) {
+    public static byte complement(byte base) {
         return switch (Character.toUpperCase((char) base)) {
             case 'A' -> (byte) 'T';
             case 'C' -> (byte) 'G';
@@ -90,5 +92,22 @@ public class Transcript {
             case 'U' -> (byte) 'A';
             default -> (byte) 'N';
         };
+    }
+
+    public int length() {
+        return sequence.length;
+    }
+
+    public List<ReadGenerationEvent> createEventsForTranscript(int[] fragmentLength, int[] startingPosition, int readLength) {
+        List<ReadGenerationEvent> events = new ArrayList<>();
+
+        for (int i = 0; i < fragmentLength.length; i++) {
+            byte[] fwReadSequence = Arrays.copyOfRange(sequence, startingPosition[i], startingPosition[i] + readLength);
+            byte[] rwReadSequence = Arrays.copyOfRange(sequence, startingPosition[i] + fragmentLength[i] - readLength - 1, startingPosition[i] + fragmentLength[i] - 1);
+
+
+            events.add(new ReadGenerationEvent(fwReadSequence, rwReadSequence));
+        }
+        return events;
     }
 }

@@ -23,23 +23,6 @@ public class ReadSimulator {
 
     public void runSimulation() throws IOException {
         gtf.buildGenesTranscriptSequences(reader);
-        HashMap<String, String> actualSeqeunces = TranscriptFastaReader.getTranscriptMap();
-        int wrong = 0;
-        int correct = 0;
-        for (Gene gene : gtf.getGenes()) {
-            for (Transcript transcript : gene.getTranscripts()) {
-
-                String mySeq = new String(transcript.getSequence(), StandardCharsets.US_ASCII);
-                String seq2 = actualSeqeunces.get(transcript.getTranscriptId());
-
-                if (!mySeq.equals(seq2)) wrong++;
-                else correct++;
-            }
-        }
-
-        System.out.println(wrong);
-        System.out.println(correct);
-        reader.closeChannel();
     }
 
     public static void main(String[] args) {
