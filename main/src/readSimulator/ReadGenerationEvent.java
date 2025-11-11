@@ -3,11 +3,11 @@ package readSimulator;
 import java.util.List;
 
 public class ReadGenerationEvent {
-    private String chromosome;
-    private String geneId;
-    private String transcriptId;
-    private byte[] fwSeqeunce;
-    private byte[] rwSequence;
+    private final String chromosome;
+    private final String geneId;
+    private final String transcriptId;
+    private final byte[] fwSeqeunce;
+    private final byte[] rwSequence;
     String fwRegVec;
     String rwRegVec;
     String transcriptFwRegVec;

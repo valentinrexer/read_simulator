@@ -22,6 +22,14 @@ public class ParallelizedOutputWriter implements Runnable, AutoCloseable {
         this.forwardWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fwFilePath.toFile()), StandardCharsets.UTF_8), 1 << 16);
         this.reverseWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(rwFilePath.toFile()), StandardCharsets.UTF_8), 1 << 16);
         this.mappingInfoWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(mappingInfoPath.toFile()), StandardCharsets.UTF_8), 1 << 16);
+
+        makeHeaders();
+    }
+
+    public void makeHeaders() throws IOException {
+        String mappingInfoHeader = "readid\tchr_id\tgene_id\ttranscript_id\tfw_regvec\trw_regvec\tt_fw_regvec\tt_rw_regvec\tfw_mut\trw_mut";
+        mappingInfoWriter.write(mappingInfoHeader);
+        mappingInfoWriter.newLine();
     }
 
     @Override
@@ -65,6 +73,8 @@ public class ParallelizedOutputWriter implements Runnable, AutoCloseable {
         writer.write(new String(seq));
         writer.newLine();
         writer.write('+');
+        writer.write(Long.toString(id));
+        writer.newLine();
         writer.write(getQualityString(seq.length));
         writer.newLine();
     }

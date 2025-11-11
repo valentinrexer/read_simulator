@@ -20,10 +20,6 @@ public class Transcript {
         this.strand = strand;
     }
 
-    public String getTranscriptId() {
-        return transcriptId;
-    }
-
     public void addCoordinates(Coordinates coordinates) {
         this.exonRegions.add(coordinates);
     }

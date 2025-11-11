@@ -14,16 +14,16 @@ public class RandomOperationExecutor {
         return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
     }
 
-    public void initRandomSamples(int n, double meanLength, double standardDeviation, int transcriptLength,
+    public void initRandomSamples(int n, double meanLength, double standardDeviation, int transcriptLength, int readLength,
                                   int[] fragmentsLengths, int[] startPositions) {
         for (int i = 0; i < n; i++) {
             int fragmentLength;
             do {
                 double val = meanLength + standardDeviation * nextGaussian();
                 fragmentLength = (int) Math.round(val);
-            } while (fragmentLength < 1 || fragmentLength >= transcriptLength);
+            } while (fragmentLength <= readLength || fragmentLength >= transcriptLength);
 
-            fragmentsLengths[startPositions[i]] = fragmentLength;
+            fragmentsLengths[i] = fragmentLength;
 
             int maxStartPosition = transcriptLength - fragmentLength;
             startPositions[i] = rng.nextInt(maxStartPosition);
@@ -34,7 +34,7 @@ public class RandomOperationExecutor {
         if (seq == null || mutationRate <= 0) return null;
         List<Integer> ret = new ArrayList<>();
 
-        if (mutationRate >= 1.0) { // mutate everything
+        if (mutationRate >= 100.0) {
             for (int i = 0; i < seq.length; i++){
                 seq[i] = randomDifferentBase(seq[i]);
                 ret.add(i);
@@ -42,7 +42,7 @@ public class RandomOperationExecutor {
             return ret ;
         }
 
-        final double log1mP = Math.log(1.0 - mutationRate);
+        final double log1mP = Math.log(1.0 - mutationRate / 100.0);
         int i = 0;
         final int L = seq.length;
 

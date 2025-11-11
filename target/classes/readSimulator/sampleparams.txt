@@ -1,0 +1,9 @@
+-readcounts /home/valentinrexer/core/uni/bioinformatics/semester7/gobi/data/ReadSimulator/readcounts.simulation \
+-fasta /home/valentinrexer/core/uni/bioinformatics/semester7/gobi/data/ReadSimulator/Homo_sapiens.GRCh37.75.dna.toplevel.fa \
+-fidx /home/valentinrexer/core/uni/bioinformatics/semester7/gobi/data/ReadSimulator/Homo_sapiens.GRCh37.75.dna.toplevel.fa.fai \
+-gtf /home/valentinrexer/core/uni/bioinformatics/semester7/gobi/data/ReadSimulator/Homo_sapiens.GRCh37.75.gtf \
+-od /home/valentinrexer/core/uni/bioinformatics/semester7/gobi/data/generatedFilesRS \
+-length 75 \
+-frlength 200 \
+-SD 80 \
+-mutationrate 0.01

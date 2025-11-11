@@ -68,7 +68,7 @@ public class Gene {
         int[] randomStartingPositions = new int[count];
 
         RandomOperationExecutor roe = new RandomOperationExecutor();
-        roe.initRandomSamples(count, initialFragmentLength, standardDeviation, transcript.length(), randomLengths, randomStartingPositions);
+        roe.initRandomSamples(count, initialFragmentLength, standardDeviation, transcript.length(), readLength, randomLengths, randomStartingPositions);
         return new ReadGenerationEventChunk(transcript.createEventsForTranscript(
                 randomLengths,
                 randomStartingPositions,
