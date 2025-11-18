@@ -19,6 +19,7 @@ public class ReadSimulator {
     private final double fragmentSD;
     private final double mutationRate;
     private final Path outputDir;
+    private final int CHUNK_SIZE = 20_000;
 
     public ReadSimulator(
             Path readCountsPath,
@@ -67,23 +68,21 @@ public class ReadSimulator {
         Path rwPath = outputDir.resolve("rw.fastq");
         Path mappingInfoPath = outputDir.resolve("read.mappinginfo");
 
-        ParallelizedOutputWriter writer = new ParallelizedOutputWriter(queue, fwPath, rwPath, mappingInfoPath);
+        ParallelizedOutputWriter writer = new ParallelizedOutputWriter(queue, fwPath, rwPath, mappingInfoPath, readLength);
         Thread writerThread = new Thread(writer);
         writerThread.start();
 
         gtf.getGenes().parallelStream().forEach(gene -> {
             try {
-                List<ReadGenerationEventChunk> chunksForGene = gene.getAllChunks(
+                gene.generateEventsForAllTranscripts(
                         readCounts.getCounts().get(gene.getGeneId()),
-                                fragmentLength,
-                                fragmentSD,
-                                readLength,
-                                mutationRate
+                        fragmentLength,
+                        fragmentSD,
+                        readLength,
+                        mutationRate,
+                        queue,
+                        CHUNK_SIZE
                 );
-
-                for (ReadGenerationEventChunk chunk : chunksForGene) {
-                    queue.put(chunk);
-                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

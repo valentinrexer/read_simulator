@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.SplittableRandom;
 
 public class RandomOperationExecutor {
-    private final SplittableRandom rng = new SplittableRandom(1);
+    private final SplittableRandom rng = new SplittableRandom();
     private static final byte[] BASES = {'A','C','G','T'};
 
     private double nextGaussian() {

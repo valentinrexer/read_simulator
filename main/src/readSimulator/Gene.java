@@ -3,6 +3,7 @@ package readSimulator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
 public class Gene {
     private final String geneId;
@@ -37,6 +38,37 @@ public class Gene {
         }
     }
 
+    public void generateEventsForAllTranscripts (HashMap<String, Integer> counts,
+                                              int initialFragmentLength,
+                                              double standardDeviation,
+                                              int readLength,
+                                              double mutationRate,
+                                              BlockingQueue<ReadGenerationEventChunk> queue,
+                                              int CHUNK_SIZE) throws InterruptedException {
+
+        for (String transcriptId : transcriptMap.keySet())  {
+            int remaining = counts.get(transcriptId);
+
+            while (remaining > 0) {
+                int batch = Math.min(remaining, CHUNK_SIZE);
+
+                ReadGenerationEventChunk chunk = generateRandomReadChunkForTranscript(
+                        transcriptId,
+                        batch,
+                        initialFragmentLength,
+                        standardDeviation,
+                        readLength,
+                        mutationRate
+                );
+
+                queue.put(chunk);
+
+                if (batch < CHUNK_SIZE) return;
+                remaining -= CHUNK_SIZE;
+            }
+        }
+    }
+
     public List<ReadGenerationEventChunk> getAllChunks(HashMap<String, Integer> counts,
                                                        int initialFragmentLength,
                                                        double standardDeviation,
@@ -63,6 +95,7 @@ public class Gene {
                                             double standardDeviation,
                                             int readLength,
                                             double mutationRate) {
+
         Transcript transcript = getTranscript(transcriptId);
         int[] randomLengths = new int[count];
         int[] randomStartingPositions = new int[count];

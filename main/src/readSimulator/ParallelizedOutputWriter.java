@@ -3,7 +3,6 @@ package readSimulator;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.io.*;
-import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.BlockingQueue;
 
@@ -14,15 +13,15 @@ public class ParallelizedOutputWriter implements Runnable, AutoCloseable {
     private final BufferedWriter mappingInfoWriter;
     private final AtomicLong id = new AtomicLong(0);
     private volatile boolean running = true;
-    private static final HashMap<Integer, String> QUALITY_CACHE = new HashMap<>();
+    private final String QUALITY_STRING;
     public static final ReadGenerationEventChunk STOPPING_SIGNAL_CHUNK = new ReadGenerationEventChunk(null);
 
-    public ParallelizedOutputWriter(BlockingQueue<ReadGenerationEventChunk> queue, Path fwFilePath, Path rwFilePath, Path mappingInfoPath) throws IOException {
+    public ParallelizedOutputWriter(BlockingQueue<ReadGenerationEventChunk> queue, Path fwFilePath, Path rwFilePath, Path mappingInfoPath, int readLength) throws IOException {
         this.queue = queue;
         this.forwardWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fwFilePath.toFile()), StandardCharsets.UTF_8), 1 << 16);
         this.reverseWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(rwFilePath.toFile()), StandardCharsets.UTF_8), 1 << 16);
         this.mappingInfoWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(mappingInfoPath.toFile()), StandardCharsets.UTF_8), 1 << 16);
-
+        this.QUALITY_STRING = "I".repeat(readLength);
         makeHeaders();
     }
 
@@ -75,7 +74,7 @@ public class ParallelizedOutputWriter implements Runnable, AutoCloseable {
         writer.write('+');
         writer.write(Long.toString(id));
         writer.newLine();
-        writer.write(getQualityString(seq.length));
+        writer.write(QUALITY_STRING);
         writer.newLine();
     }
 
@@ -88,9 +87,9 @@ public class ParallelizedOutputWriter implements Runnable, AutoCloseable {
         writer.write("\t");
         writer.write(event.getTranscriptId());
         writer.write("\t");
-        writer.write(event.fwRegVec);
+        writer.write(event.getFwRegVec());
         writer.write("\t");
-        writer.write(event.rwRegVec);
+        writer.write(event.getRwRegVec());
         writer.write("\t");
         writer.write(event.getTranscriptFwRegVec());
         writer.write("\t");
@@ -100,9 +99,5 @@ public class ParallelizedOutputWriter implements Runnable, AutoCloseable {
         writer.write("\t");
         writer.write(event.getFormattedRwMutations());
         writer.newLine();
-    }
-
-    public static String getQualityString(int length) {
-        return QUALITY_CACHE.computeIfAbsent(length, "I"::repeat);
     }
 }

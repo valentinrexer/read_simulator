@@ -11,6 +11,7 @@ public class Transcript {
     private final String chromosome;
     private final List<Coordinates> exonRegions;
     private final char strand;
+    private int[] genomicPositionMapping;
     private byte[] sequence;
 
     public Transcript(String transcriptId, String chromosome, char strand) {
@@ -51,9 +52,24 @@ public class Transcript {
             seqPos += exonVector.length;
         }
 
-        if (strand == '-') {
-            reverseComplementInPlace(sequence);
+        if (strand == '-') reverseComplementInPlace(sequence);
+
+        createGenomicPositionMappingArray();
+    }
+
+    public void createGenomicPositionMappingArray() {
+        genomicPositionMapping = new int[sequence.length];
+        int mappedPos = 0;
+
+        for (Coordinates coordinates : exonRegions) {
+            int exonStart = coordinates.coordinate1();
+            int exonEnd   = coordinates.coordinate2();
+
+            for (int g = exonStart; g <= exonEnd; g++) {
+                genomicPositionMapping[mappedPos++] = g;
+            }
         }
+
     }
 
     public byte[] getSequence() {
@@ -103,27 +119,35 @@ public class Transcript {
         List<ReadGenerationEvent> events = new ArrayList<>();
 
         for (int i = 0; i < fragmentLength.length; i++) {
-            int forwardStart = startingPosition[i];
-            int forwardEnd = startingPosition[i] + readLength;
+            int plusStart = startingPosition[i];
+            int plusEnd = startingPosition[i] + readLength;
 
-            int reverseStart = startingPosition[i] + fragmentLength[i] - readLength - 1;
-            int reverseEnd = startingPosition[i] + fragmentLength[i] - 1;
+            int minusStart = startingPosition[i] + fragmentLength[i] - readLength - 1;
+            int minusEnd = startingPosition[i] + fragmentLength[i] - 1;
 
             byte[] fwReadSequence = Arrays.copyOfRange(sequence,
-                    forwardStart,
-                    forwardEnd);
+                    plusStart,
+                    plusEnd);
 
             byte[] rwReadSequence = Arrays.copyOfRange(sequence,
-                    reverseStart,
-                    reverseEnd);
+                    minusStart,
+                    minusEnd);
 
-            int genomicTranscriptStart = exonRegions.getFirst().coordinate1();
+            reverseComplementInPlace(rwReadSequence);
 
-            String genomicForwardReadVector = (genomicTranscriptStart + forwardStart) + "-" + (genomicTranscriptStart + forwardEnd);
-            String genomicReverseReadVector = (genomicTranscriptStart + reverseStart) + "-" + (genomicTranscriptStart + reverseEnd);
+            String genomicForwardReadVector;
+            String genomicReverseReadVector;
 
-            String transcriptForwardReadVector = forwardStart + "-" + forwardEnd;
-            String transcriptReverseReadVector = reverseStart + "-" + reverseEnd;
+            if (strand == '-') {
+                genomicForwardReadVector = (genomicPositionMapping[plusStart] + 1) + "-" + (genomicPositionMapping[plusEnd] + 1);
+                genomicReverseReadVector = (genomicPositionMapping[minusStart] + 1) + "-" + (genomicPositionMapping[minusEnd] + 1);
+            } else {
+                genomicForwardReadVector = (genomicPositionMapping[plusStart]) + "-" + (genomicPositionMapping[plusEnd]);
+                genomicReverseReadVector = (genomicPositionMapping[minusStart]) + "-" + (genomicPositionMapping[minusEnd]);
+            }
+
+            String transcriptForwardReadVector = plusStart + "-" + plusEnd;
+            String transcriptReverseReadVector = minusStart + "-" + minusEnd;
 
             List<Integer> mutatedPositionsForwardRead = roe.mutateInPlace(fwReadSequence, mutationRate);
             List<Integer> mutatedPositionsReverseRead = roe.mutateInPlace(rwReadSequence, mutationRate);

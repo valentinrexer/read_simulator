@@ -47,8 +47,4 @@ public class ReadCounts {
             transcriptIds.addAll(transcripts.keySet());
         return transcriptIds;
     }
-
-    public List<String> getGeneIds() {
-        return new ArrayList<>(countsInfo.keySet());
-    }
 }
