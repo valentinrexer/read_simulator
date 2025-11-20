@@ -152,43 +152,82 @@ public class Transcript {
         int fwLastInclusive = fwLast - 1;
         int rwLastInclusive = rwLast - 1;
 
-        int transcriptPos = 0; // start of current exon in transcript coordinates
-
         List<Coordinates> fwRegions = new ArrayList<>();
         List<Coordinates> rwRegions = new ArrayList<>();
 
-        for (Coordinates exon : exonRegions) {
+        if (strand == '+') {
+            int transcriptPos = 0; // start of current exon in transcript coordinates
 
-            int exonStart = exon.coordinate1();
-            int exonEnd   = exon.coordinate2();
-            int exonLen   = exonEnd - exonStart + 1;
+            for (Coordinates exon : exonRegions) {
 
-            int exonT0 = transcriptPos;
-            int exonT1 = transcriptPos + exonLen - 1;
+                int exonStart = exon.coordinate1();
+                int exonEnd = exon.coordinate2();
+                int exonLen = exonEnd - exonStart + 1;
 
-            if (fwLastInclusive >= exonT0 && fwFirst <= exonT1) {
+                int exonT0 = transcriptPos;
+                int exonT1 = transcriptPos + exonLen - 1;
 
-                int overlapStartT = Math.max(fwFirst,        exonT0);
-                int overlapEndT   = Math.min(fwLastInclusive, exonT1);
+                if (fwLastInclusive >= exonT0 && fwFirst <= exonT1) {
 
-                int genomicStart = exonStart + (overlapStartT - exonT0);
-                int genomicEnd   = exonStart + (overlapEndT   - exonT0);
+                    int overlapStartT = Math.max(fwFirst, exonT0);
+                    int overlapEndT = Math.min(fwLastInclusive, exonT1);
 
-                fwRegions.add(new Coordinates(genomicStart, genomicEnd));
+                    int genomicStart = exonStart + (overlapStartT - exonT0);
+                    int genomicEnd = exonStart + (overlapEndT - exonT0);
+
+                    fwRegions.add(new Coordinates(genomicStart, genomicEnd));
+                }
+
+                if (rwLastInclusive >= exonT0 && rwFirst <= exonT1) {
+
+                    int overlapStartT = Math.max(rwFirst, exonT0);
+                    int overlapEndT = Math.min(rwLastInclusive, exonT1);
+
+                    int genomicStart = exonStart + (overlapStartT - exonT0);
+                    int genomicEnd = exonStart + (overlapEndT - exonT0);
+
+                    rwRegions.add(new Coordinates(genomicStart, genomicEnd));
+                }
+
+                transcriptPos += exonLen;
             }
+        } else {
+            // Transcript sequence is reverse-complemented, so transcript coordinate 0
+            // corresponds to the last base of the last exon.
+            int transcriptPos = 0;
 
-            if (rwLastInclusive >= exonT0 && rwFirst <= exonT1) {
+            for (int i = exonRegions.size() - 1; i >= 0; i--) {
+                Coordinates exon = exonRegions.get(i);
 
-                int overlapStartT = Math.max(rwFirst,        exonT0);
-                int overlapEndT   = Math.min(rwLastInclusive, exonT1);
+                int exonStart = exon.coordinate1();
+                int exonEnd = exon.coordinate2();
+                int exonLen = exonEnd - exonStart + 1;
 
-                int genomicStart = exonStart + (overlapStartT - exonT0);
-                int genomicEnd   = exonStart + (overlapEndT   - exonT0);
+                int exonT0 = transcriptPos;
+                int exonT1 = transcriptPos + exonLen - 1;
 
-                rwRegions.add(new Coordinates(genomicStart, genomicEnd));
+                if (fwLastInclusive >= exonT0 && fwFirst <= exonT1) {
+                    int overlapStartT = Math.max(fwFirst, exonT0);
+                    int overlapEndT = Math.min(fwLastInclusive, exonT1);
+
+                    int genomicStart = exonEnd - (overlapStartT - exonT0);
+                    int genomicEnd = exonEnd - (overlapEndT - exonT0);
+
+                    fwRegions.add(new Coordinates(Math.min(genomicStart, genomicEnd), Math.max(genomicStart, genomicEnd)));
+                }
+
+                if (rwLastInclusive >= exonT0 && rwFirst <= exonT1) {
+                    int overlapStartT = Math.max(rwFirst, exonT0);
+                    int overlapEndT = Math.min(rwLastInclusive, exonT1);
+
+                    int genomicStart = exonEnd - (overlapStartT - exonT0);
+                    int genomicEnd = exonEnd - (overlapEndT - exonT0);
+
+                    rwRegions.add(new Coordinates(Math.min(genomicStart, genomicEnd), Math.max(genomicStart, genomicEnd)));
+                }
+
+                transcriptPos += exonLen;
             }
-
-            transcriptPos += exonLen;
         }
 
         String fwString = coordsToString(fwRegions);
