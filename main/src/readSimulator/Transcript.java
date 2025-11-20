@@ -115,9 +115,7 @@ public class Transcript {
             String transcriptForwardReadVector = plusStrandFirstIndex + "-" + plusStrandLastIndex;
             String transcriptReverseReadVector = minusStrandFirstIndex + "-" + minusStrandLastIndex;
 
-            List<String> genomicCoordinates;
-            if (strand == '+') genomicCoordinates = getGenomicCoordinates(plusStrandFirstIndex, plusStrandLastIndex, minusStrandFirstIndex, minusStrandLastIndex);
-            else genomicCoordinates = getGenomicCoordinates(minusStrandFirstIndex, minusStrandLastIndex, plusStrandFirstIndex, plusStrandLastIndex);
+            var genomicCoordinates = getGenomicCoordinates(plusStrandFirstIndex, plusStrandLastIndex, minusStrandFirstIndex, minusStrandLastIndex);
 
             String genomicForwardReadVector = genomicCoordinates.get(0);
             String genomicReverseReadVector = genomicCoordinates.get(1);
