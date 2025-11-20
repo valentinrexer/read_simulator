@@ -11,7 +11,6 @@ public class Transcript {
     private final String chromosome;
     private final List<Coordinates> exonRegions;
     private final char strand;
-    private int[] genomicPositionMapping;
     private byte[] sequence;
 
     public Transcript(String transcriptId, String chromosome, char strand) {
@@ -53,39 +52,6 @@ public class Transcript {
         }
 
         if (strand == '-') reverseComplementInPlace(sequence);
-
-        createGenomicPositionMappingArray();
-    }
-
-    public void createGenomicPositionMappingArray() {
-        genomicPositionMapping = new int[sequence.length];
-        int mappedPos = 0;
-
-        if (strand == '+') {
-            for (Coordinates coordinates : exonRegions) {
-                int exonStart = coordinates.coordinate1();
-                int exonEnd   = coordinates.coordinate2();
-
-                for (int g = exonStart; g <= exonEnd; g++) {
-                    genomicPositionMapping[mappedPos++] = g;
-                }
-            }
-        } else {
-            for (int exonIdx = exonRegions.size() - 1; exonIdx >= 0; exonIdx--) {
-                Coordinates coordinates = exonRegions.get(exonIdx);
-                int exonStart = coordinates.coordinate1();
-                int exonEnd   = coordinates.coordinate2();
-
-                for (int g = exonEnd; g >= exonStart; g--) {
-                    genomicPositionMapping[mappedPos++] = g;
-                }
-            }
-        }
-
-    }
-
-    public byte[] getSequence() {
-        return sequence;
     }
 
     public static void reverseComplementInPlace(byte[] sequence) {
@@ -111,8 +77,7 @@ public class Transcript {
             case 'A' -> (byte) 'T';
             case 'C' -> (byte) 'G';
             case 'G' -> (byte) 'C';
-            case 'T' -> (byte) 'A';
-            case 'U' -> (byte) 'A';
+            case 'T', 'U' -> (byte) 'A';
             default -> (byte) 'N';
         };
     }
@@ -121,8 +86,8 @@ public class Transcript {
         return sequence.length;
     }
 
-    public List<ReadGenerationEvent> createEventsForTranscript(int[] fragmentLength,
-                                                               int[] startingPosition,
+    public List<ReadGenerationEvent> createEventsForTranscript(int[] fragmentLengths,
+                                                               int[] startingPositions,
                                                                int readLength,
                                                                double mutationRate,
                                                                RandomOperationExecutor roe,
@@ -130,34 +95,33 @@ public class Transcript {
                                                                String geneId) {
         List<ReadGenerationEvent> events = new ArrayList<>();
 
-        for (int i = 0; i < fragmentLength.length; i++) {
-            int plusStart = startingPosition[i];
-            int plusEndExclusive = startingPosition[i] + readLength;
+        for (int i = 0; i < fragmentLengths.length; i++) {
+            int plusStrandFirstIndex = startingPositions[i];
+            int plusStrandLastIndex = startingPositions[i] + readLength;
 
-            int minusStart = startingPosition[i] + fragmentLength[i] - readLength;
-            int minusEndExclusive = startingPosition[i] + fragmentLength[i];
+            int minusStrandFirstIndex = startingPositions[i] + fragmentLengths[i] - readLength;
+            int minusStrandLastIndex = startingPositions[i] + fragmentLengths[i];
 
             byte[] fwReadSequence = Arrays.copyOfRange(sequence,
-                    plusStart,
-                    plusEndExclusive);
+                    plusStrandFirstIndex,
+                    plusStrandLastIndex);
 
             byte[] rwReadSequence = Arrays.copyOfRange(sequence,
-                    minusStart,
-                    minusEndExclusive);
+                    minusStrandFirstIndex,
+                    minusStrandLastIndex);
 
             reverseComplementInPlace(rwReadSequence);
 
-            String genomicForwardReadVector;
-            String genomicReverseReadVector;
+            String transcriptForwardReadVector = plusStrandFirstIndex + "-" + plusStrandLastIndex;
+            String transcriptReverseReadVector = minusStrandFirstIndex + "-" + minusStrandLastIndex;
 
-            int plusEndInclusiveIndex = plusEndExclusive - 1;
-            int minusEndInclusiveIndex = minusEndExclusive - 1;
+            List<String> genomicCoordinates;
+            if (strand == '+') genomicCoordinates = getGenomicCoordinates(plusStrandFirstIndex, plusStrandLastIndex, minusStrandFirstIndex, minusStrandLastIndex);
+            else genomicCoordinates = getGenomicCoordinates(minusStrandFirstIndex, minusStrandLastIndex, plusStrandFirstIndex, plusStrandLastIndex);
 
-            genomicForwardReadVector = genomicPositionMapping[plusStart] + "-" + genomicPositionMapping[plusEndInclusiveIndex];
-            genomicReverseReadVector = genomicPositionMapping[minusStart] + "-" + genomicPositionMapping[minusEndInclusiveIndex];
+            String genomicForwardReadVector = genomicCoordinates.get(0);
+            String genomicReverseReadVector = genomicCoordinates.get(1);
 
-            String transcriptForwardReadVector = plusStart + "-" + plusEndInclusiveIndex;
-            String transcriptReverseReadVector = minusStart + "-" + minusEndInclusiveIndex;
 
             List<Integer> mutatedPositionsForwardRead = roe.mutateInPlace(fwReadSequence, mutationRate);
             List<Integer> mutatedPositionsReverseRead = roe.mutateInPlace(rwReadSequence, mutationRate);
@@ -178,4 +142,73 @@ public class Transcript {
         }
         return events;
     }
+
+    private List<String> getGenomicCoordinates(int fwFirst,
+                                               int fwLast,
+                                               int rwFirst,
+                                               int rwLast) {
+
+        // Convert to inclusive last indices in transcript coordinates
+        int fwLastInclusive = fwLast - 1;
+        int rwLastInclusive = rwLast - 1;
+
+        int transcriptPos = 0; // start of current exon in transcript coordinates
+
+        List<Coordinates> fwRegions = new ArrayList<>();
+        List<Coordinates> rwRegions = new ArrayList<>();
+
+        for (Coordinates exon : exonRegions) {
+
+            int exonStart = exon.coordinate1();
+            int exonEnd   = exon.coordinate2();
+            int exonLen   = exonEnd - exonStart + 1;
+
+            int exonT0 = transcriptPos;
+            int exonT1 = transcriptPos + exonLen - 1;
+
+            if (fwLastInclusive >= exonT0 && fwFirst <= exonT1) {
+
+                int overlapStartT = Math.max(fwFirst,        exonT0);
+                int overlapEndT   = Math.min(fwLastInclusive, exonT1);
+
+                int genomicStart = exonStart + (overlapStartT - exonT0);
+                int genomicEnd   = exonStart + (overlapEndT   - exonT0);
+
+                fwRegions.add(new Coordinates(genomicStart, genomicEnd));
+            }
+
+            if (rwLastInclusive >= exonT0 && rwFirst <= exonT1) {
+
+                int overlapStartT = Math.max(rwFirst,        exonT0);
+                int overlapEndT   = Math.min(rwLastInclusive, exonT1);
+
+                int genomicStart = exonStart + (overlapStartT - exonT0);
+                int genomicEnd   = exonStart + (overlapEndT   - exonT0);
+
+                rwRegions.add(new Coordinates(genomicStart, genomicEnd));
+            }
+
+            transcriptPos += exonLen;
+        }
+
+        String fwString = coordsToString(fwRegions);
+        String rwString = coordsToString(rwRegions);
+
+        return List.of(fwString, rwString);
+    }
+
+    private static String coordsToString(List<Coordinates> list) {
+        if (list.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (Coordinates c : list) {
+            sb.append(c.coordinate1())
+                    .append("-")
+                    .append(c.coordinate2())
+                    .append("|");
+        }
+        sb.setLength(sb.length() - 1); // remove final "|"
+        return sb.toString();
+    }
+
+
 }

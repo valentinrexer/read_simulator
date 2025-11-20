@@ -19,7 +19,7 @@ public class ReadSimulator {
     private final double fragmentSD;
     private final double mutationRate;
     private final Path outputDir;
-    private final int CHUNK_SIZE = 20_000;
+    private final int CHUNK_SIZE = 30_000;
 
     public ReadSimulator(
             Path readCountsPath,
@@ -72,6 +72,23 @@ public class ReadSimulator {
         Thread writerThread = new Thread(writer);
         writerThread.start();
 
+        for (Gene gene : gtf.getGenes()) {
+            try {
+                gene.generateEventsForAllTranscripts(
+                        readCounts.getCounts().get(gene.getGeneId()),
+                        fragmentLength,
+                        fragmentSD,
+                        readLength,
+                        mutationRate,
+                        queue,
+                        CHUNK_SIZE
+                );
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        /*
         gtf.getGenes().parallelStream().forEach(gene -> {
             try {
                 gene.generateEventsForAllTranscripts(
@@ -87,6 +104,7 @@ public class ReadSimulator {
                 Thread.currentThread().interrupt();
             }
         });
+         */
 
         try {
             queue.put(ParallelizedOutputWriter.STOPPING_SIGNAL_CHUNK);
