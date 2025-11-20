@@ -63,7 +63,6 @@ public class Gene {
 
                 queue.put(chunk);
 
-                if (batch < CHUNK_SIZE) return;
                 remaining -= CHUNK_SIZE;
             }
         }

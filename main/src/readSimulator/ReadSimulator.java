@@ -71,7 +71,7 @@ public class ReadSimulator {
         ParallelizedOutputWriter writer = new ParallelizedOutputWriter(queue, fwPath, rwPath, mappingInfoPath, readLength);
         Thread writerThread = new Thread(writer);
         writerThread.start();
-
+    /*
         for (Gene gene : gtf.getGenes()) {
             try {
                 gene.generateEventsForAllTranscripts(
@@ -87,8 +87,8 @@ public class ReadSimulator {
                 Thread.currentThread().interrupt();
             }
         }
+    */
 
-        /*
         gtf.getGenes().parallelStream().forEach(gene -> {
             try {
                 gene.generateEventsForAllTranscripts(
@@ -104,7 +104,7 @@ public class ReadSimulator {
                 Thread.currentThread().interrupt();
             }
         });
-         */
+
 
         try {
             queue.put(ParallelizedOutputWriter.STOPPING_SIGNAL_CHUNK);
